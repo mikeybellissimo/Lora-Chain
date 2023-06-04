@@ -41,12 +41,18 @@ def load( base_model, most_recent_checkpoint, load_in_8bit = True, hfModelClass 
 
     i = len(checkpoint_chain) - 1
 
-    model = MPTForCausalLM.from_pretrained(
-        base_model,
-        #load_in_8bit=load_8bit,
-        torch_dtype=torch.float16,
-        device_map={'': 0},
-    )
+    
+    try:
+        model = hfModelClass.from_pretrained(
+            base_model,
+            #load_in_8bit=load_8bit,
+            torch_dtype=torch.float16,
+            device_map={'': 0},
+        )
+    except(AttributeError):
+        raise AttributeError(
+            "hfModelClass must be a subclass of huggingface's pretrained model and/or implement the from_pretrained method in the same way"
+        )
 
     while i >= 0:
         model = PeftModel.from_pretrained(
@@ -60,12 +66,7 @@ def load( base_model, most_recent_checkpoint, load_in_8bit = True, hfModelClass 
     
     config = model.config
     state_dict = model.state_dict()
-    try:
-        model = hfModelClass.from_pretrained(None, config=config, state_dict=state_dict, torch_dtype=torch.float16, load_in_8bit = load_in_8bit, device_map={'': 0} )
-    except(AttributeError):
-        raise AttributeError(
-            "hfModelClass must be a subclass of huggingface's pretrained model and/or implement the from_pretrained method in the same way"
-        )
+    model = hfModelClass.from_pretrained(None, config=config, state_dict=state_dict, torch_dtype=torch.float16, load_in_8bit = load_in_8bit, device_map={'': 0} )
 
     config = None
     state_dict = None
